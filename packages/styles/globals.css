@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --background: #ffffff;
+  --foreground: #213547;
+  --button-bg: #f9f9f9;
+  --link-color: #646cff;
+  --link-hover-color: #747bff;
+  font-size: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --button-bg: #1a1a1a;
+    --link-hover-color: #535bf2;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    font-size: 16px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    font-size: 18px;
+  }
+}
+@media (min-width: 1920px) {
+  :root {
+    font-size: 20px;
+  }
+}
+
+html {
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--foreground);
+  background-color: var(--background);
+  @apply px-4 md:px-8 lg:px-12 xl:px-16;
+}
+
+h1 {
+  line-height: 1.1;
+  @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
+}
+
+a {
+  font-weight: 500;
+  color: var(--link-color);
+  text-decoration: inherit;
+  transition: color 0.25s;
+}
+a:hover {
+  color: var(--link-hover-color);
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--button-bg);
+  cursor: pointer;
+  transition: border-color 0.25s;
+  @apply py-2 px-4 text-sm 
+    md:py-3 md:px-6 md:text-base 
+    lg:py-4 lg:px-8 lg:text-lg 
+    xl:py-5 xl:px-10 xl:text-xl;
+}
+
+button:hover {
+  border-color: var(--link-color);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@layer utilities {
+  .responsive-padding {
+    @apply p-4 md:p-6 lg:p-8 xl:p-10;
+  }
+  .responsive-gap {
+    @apply gap-4 md:gap-6 lg:gap-8 xl:gap-10;
+  }
+}
