@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import MenuCard from "../packages/components/menu-card";
+import MenuForm from "../packages/components/menu-form";
+import Modal from "../packages/components/modal";
+import SearchBar from "../packages/components/search-bar";
 
 const starterItems = [
   {
@@ -60,21 +64,21 @@ export default function Page() {
   return (
     <div className="">
       <h1 className="">Menu</h1>
-      {/* <SearchBar query={searchQuery} onSearchChange={handleSearchChange} /> */}
+      <SearchBar query={searchQuery} onSearchChange={handleSearchChange} />
       <button
         onClick={() => setIsModalOpen(true)}
         className="p-2 mb-4 text-white bg-green-500 rounded"
       >
         Add New Item
       </button>
-      {/* <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <MenuForm onAddItem={addItem} />
-      </Modal> */}
-      {/* <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ">
+      </Modal>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ">
         {filteredItems.map((item) => (
-          // <MenuCard key={item.id} item={item} />
+          <MenuCard key={item.id} item={item} />
         ))}
-      </div> */}
+      </div>
     </div>
   );
 }
