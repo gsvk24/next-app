@@ -1,8 +1,8 @@
-interface TModalProps {
+type TModalProps = {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
-}
+};
 
 const Modal: React.FC<TModalProps> = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
