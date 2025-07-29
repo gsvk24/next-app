@@ -28,7 +28,7 @@ const starterItems = [
   },
 ];
 
-export default function Page() {
+export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,7 +50,6 @@ export default function Page() {
       ...prevItems,
       { ...item, id: crypto.randomUUID() },
     ]);
-    setIsModalOpen(false);
   };
 
   const filteredItems = menuItems.filter((item) =>

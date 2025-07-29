@@ -1,13 +1,13 @@
 import { useState } from "react";
 
-interface TMenuFormProps {
+type TMenuFormProps = {
   onAddItem: (item: {
     name: string;
     description: string;
     price: number;
     image: string;
   }) => void;
-}
+};
 
 const MenuForm: React.FC<TMenuFormProps> = ({ onAddItem }) => {
   const [name, setName] = useState("");
