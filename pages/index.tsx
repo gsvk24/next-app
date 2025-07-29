@@ -3,63 +3,42 @@ import MenuCard from "../packages/components/menu-card";
 import MenuForm from "../packages/components/menu-form";
 import Modal from "../packages/components/modal";
 import SearchBar from "../packages/components/search-bar";
-import {
-  ApolloProvider,
-  ApolloClient,
-  InMemoryCache,
-  gql,
-  useQuery,
-  useMutation,
-} from "@apollo/client";
 
-const client = new ApolloClient({
-  uri: "/api/graphql",
-  cache: new InMemoryCache(),
-});
+const starterItems = [
+  {
+    id: 1,
+    name: "Classic Burger",
+    description: "Beef cutlet, cheese, salad, sauce",
+    price: 350,
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
+  },
+  {
+    id: 2,
+    name: "Caesar salad",
+    description: "Chicken, lettuce, croutons, sauce",
+    price: 280,
+    image: "https://images.unsplash.com/photo-1546793665-c74683f339c1",
+  },
+  {
+    id: 3,
+    name: "Tiramisu",
+    description: "Classic Italian dessert",
+    price: 220,
+    image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb",
+  },
+];
 
-const GET_MENU_ITEMS = gql`
-  query GetMenuItems {
-    menuItems {
-      id
-      name
-      description
-      price
-      image
-    }
-  }
-`;
-
-const ADD_MENU_ITEM = gql`
-  mutation AddMenuItem(
-    $name: String!
-    $description: String!
-    $price: Float!
-    $image: String!
-  ) {
-    addMenuItem(
-      name: $name
-      description: $description
-      price: $price
-      image: $image
-    ) {
-      id
-      name
-      description
-      price
-      image
-    }
-  }
-`;
-
-function MenuPage() {
+export default function MenuPage() {
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data, loading, error } = useQuery(GET_MENU_ITEMS);
-
-  const [addItemMutation] = useMutation(ADD_MENU_ITEM, {
-    refetchQueries: [{ query: GET_MENU_ITEMS }],
-  });
+  useEffect(() => {
+    if (menuItems.length === 0) {
+      setMenuItems(starterItems);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addItem = (item: {
     name: string;
@@ -67,21 +46,19 @@ function MenuPage() {
     price: number;
     image: string;
   }) => {
-    addItemMutation({ variables: item });
-    setIsModalOpen(false);
+    setMenuItems((prevItems) => [
+      ...prevItems,
+      { ...item, id: crypto.randomUUID() },
+    ]);
   };
 
-  const filteredItems =
-    data?.menuItems.filter((item: any) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
+  const filteredItems = menuItems.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
   };
-
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div className="">
@@ -97,18 +74,10 @@ function MenuPage() {
         <MenuForm onAddItem={addItem} />
       </Modal>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ">
-        {filteredItems.map((item: any) => (
+        {filteredItems.map((item) => (
           <MenuCard key={item.id} item={item} />
         ))}
       </div>
     </div>
-  );
-}
-
-export default function Page() {
-  return (
-    <ApolloProvider client={client}>
-      <MenuPage />
-    </ApolloProvider>
   );
 }
