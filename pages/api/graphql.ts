@@ -34,11 +34,9 @@ const typeDefs = gql`
     price: Float
     image: String
   }
-
   type Query {
     menuItems: [MenuItem]
   }
-
   type Mutation {
     addMenuItem(
       name: String!
