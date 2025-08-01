@@ -23,7 +23,7 @@ pool
 
 const typeDefs = gql`
   type TMenuItem {
-    id: ID!
+    id: Int
     name: String
     description: String
     price: Float
