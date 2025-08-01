@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 
 export type TMenuItem = {
-  id: string;
+  id: number;
   name: string;
   description: string;
   price: number;

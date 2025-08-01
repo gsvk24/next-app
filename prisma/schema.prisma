@@ -1,0 +1,16 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model TMenuItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  price       Decimal
+  image       String?
+}
