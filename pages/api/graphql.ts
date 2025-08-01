@@ -1,33 +1,28 @@
+import "dotenv/config";
 import { ApolloServer, gql } from "apollo-server-micro";
 import { MicroRequest } from "apollo-server-micro/dist/types";
 import { ServerResponse } from "http";
+import { Pool } from "pg";
 
-let menuItems = [
-  {
-    id: "1",
-    name: "Classic Burger",
-    description: "Beef cutlet, cheese, salad, sauce",
-    price: 350,
-    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
-  },
-  {
-    id: "2",
-    name: "Caesar salad",
-    description: "Chicken, lettuce, croutons, sauce",
-    price: 280,
-    image: "https://images.unsplash.com/photo-1546793665-c74683f339c1",
-  },
-  {
-    id: "3",
-    name: "Tiramisu",
-    description: "Classic Italian dessert",
-    price: 220,
-    image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb",
-  },
-];
+import { TMenuItem, GraphQLContext } from "./types";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+pool
+  .connect()
+  .then((client) => {
+    console.log("Successfully connected to PostgreSQL!");
+    client.release();
+  })
+  .catch((err) => {
+    console.error("Error connecting to PostgreSQL:", err.message);
+    console.error("DATABASE_URL:", process.env.DATABASE_URL);
+  });
 
 const typeDefs = gql`
-  type MenuItem {
+  type TMenuItem {
     id: ID!
     name: String
     description: String
@@ -35,7 +30,7 @@ const typeDefs = gql`
     image: String
   }
   type Query {
-    menuItems: [MenuItem]
+    menuItems: [TMenuItem]
   }
   type Mutation {
     addMenuItem(
@@ -43,30 +38,47 @@ const typeDefs = gql`
       description: String!
       price: Float!
       image: String!
-    ): MenuItem
+    ): TMenuItem
   }
 `;
 
 const resolvers = {
   Query: {
-    menuItems: () => menuItems,
+    menuItems: async (
+      _: undefined,
+      __: undefined,
+      context: GraphQLContext
+    ): Promise<TMenuItem[]> => {
+      const { rows } = await context.db.query<TMenuItem>(
+        "SELECT * FROM menu_items"
+      );
+      return rows;
+    },
   },
   Mutation: {
-    addMenuItem: (_: any, { name, description, price, image }: any) => {
-      const newItem = {
-        id: crypto.randomUUID(),
-        name,
-        description,
-        price,
-        image,
-      };
-      menuItems.push(newItem);
-      return newItem;
+    addMenuItem: async (
+      _: undefined,
+      { name, description, price, image }: Omit<TMenuItem, "id">,
+      context: GraphQLContext
+    ): Promise<TMenuItem> => {
+      const { db } = context;
+      const query = `
+        INSERT INTO menu_items (name, description, price, image)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *;
+      `;
+      const values = [name, description, price, image];
+      const { rows } = await db.query<TMenuItem>(query, values);
+      return rows[0];
     },
   },
 };
 
-const apolloServer = new ApolloServer({ typeDefs, resolvers });
+const apolloServer = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: async (): Promise<GraphQLContext> => ({ db: pool }),
+});
 
 const startServer = apolloServer.start();
 

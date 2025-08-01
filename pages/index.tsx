@@ -12,6 +12,8 @@ import {
   useMutation,
 } from "@apollo/client";
 
+import { TMenuItem } from "../pages/api/types";
+
 const client = new ApolloClient({
   uri: "/api/graphql",
   cache: new InMemoryCache(),
@@ -55,24 +57,24 @@ function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data, loading, error } = useQuery(GET_MENU_ITEMS);
+  const { data, loading, error } = useQuery<{ menuItems: TMenuItem[] }>(
+    GET_MENU_ITEMS
+  );
 
-  const [addItemMutation] = useMutation(ADD_MENU_ITEM, {
+  const [addItemMutation] = useMutation<
+    { addMenuItem: TMenuItem },
+    Omit<TMenuItem, "id">
+  >(ADD_MENU_ITEM, {
     refetchQueries: [{ query: GET_MENU_ITEMS }],
   });
 
-  const addItem = (item: {
-    name: string;
-    description: string;
-    price: number;
-    image: string;
-  }) => {
+  const addItem = (item: Omit<TMenuItem, "id">) => {
     addItemMutation({ variables: item });
     setIsModalOpen(false);
   };
 
   const filteredItems =
-    data?.menuItems.filter((item: any) =>
+    data?.menuItems.filter((item: TMenuItem) =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
 
@@ -97,7 +99,7 @@ function MenuPage() {
         <MenuForm onAddItem={addItem} />
       </Modal>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ">
-        {filteredItems.map((item: any) => (
+        {filteredItems.map((item) => (
           <MenuCard key={item.id} item={item} />
         ))}
       </div>
