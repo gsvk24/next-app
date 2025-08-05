@@ -13,4 +13,6 @@ model TMenuItem {
   description String
   price       Decimal
   image       String?
+
+  @@map("menu_items")
 }

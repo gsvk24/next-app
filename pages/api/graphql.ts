@@ -42,6 +42,50 @@ const typeDefs = gql`
   }
 `;
 
+const triggerWebhook = async (item: TMenuItem) => {
+  const WEBHOOK_URL = process.env.WEBHOOK_URL;
+  if (!WEBHOOK_URL) {
+    console.error("WEBHOOK_URL is not defined in the environment variables.");
+    return;
+  }
+
+  const payload = {
+    event: "new_menu_item_created",
+    timestamp: new Date().toISOString(),
+    item: {
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      image: item.image,
+    },
+  };
+
+  console.log("Triggering webhook with payload:", payload);
+
+  try {
+    const response = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      console.log("Webhook successfully triggered!");
+    } else {
+      console.error(
+        "Failed to trigger webhook:",
+        response.status,
+        response.statusText
+      );
+    }
+  } catch (error) {
+    console.error("Error triggering webhook:", error);
+  }
+};
+
 const resolvers = {
   Query: {
     menuItems: async (
@@ -69,7 +113,11 @@ const resolvers = {
       `;
       const values = [name, description, price, image];
       const { rows } = await db.query<TMenuItem>(query, values);
-      return rows[0];
+      const newItem = rows[0];
+
+      triggerWebhook(newItem);
+
+      return newItem;
     },
   },
 };
