@@ -86,6 +86,22 @@ const triggerWebhook = async (item: TMenuItem) => {
   }
 };
 
+const simulateDelayedTask = (itemId: number) => {
+  const DELAY_MS = 10000;
+
+  console.log(
+    `[Background Task] Scheduling delayed task for item ID: ${itemId}. Will complete in ${
+      DELAY_MS / 1000
+    } seconds.`
+  );
+
+  setTimeout(() => {
+    console.log(
+      `[Background Task] Sync complete for item ID: ${itemId} at ${new Date().toISOString()}`
+    );
+  }, DELAY_MS);
+};
+
 const resolvers = {
   Query: {
     menuItems: async (
@@ -116,6 +132,8 @@ const resolvers = {
       const newItem = rows[0];
 
       triggerWebhook(newItem);
+
+      simulateDelayedTask(newItem.id);
 
       return newItem;
     },
