@@ -4,7 +4,7 @@ import { MicroRequest } from "apollo-server-micro/dist/types";
 import { ServerResponse } from "http";
 import { Pool } from "pg";
 
-import { TMenuItem, GraphQLContext } from "./types";
+import { TMenuItem, GraphQLContext, TMutationResponse } from "./types";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -114,28 +114,164 @@ const resolvers = {
       );
       return rows;
     },
+    menuItem: async (
+      _: undefined,
+      { id }: { id: number },
+      context: GraphQLContext
+    ): Promise<TMenuItem | null> => {
+      const { rows } = await context.db.query<TMenuItem>(
+        "SELECT * FROM menu_items WHERE id = $1",
+        [id]
+      );
+      return rows[0] || null;
+    },
   },
   Mutation: {
     addMenuItem: async (
       _: undefined,
       { name, description, price, image }: Omit<TMenuItem, "id">,
       context: GraphQLContext
-    ): Promise<TMenuItem> => {
+    ): Promise<TMutationResponse> => {
       const { db } = context;
-      const query = `
-        INSERT INTO menu_items (name, description, price, image)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *;
-      `;
-      const values = [name, description, price, image];
-      const { rows } = await db.query<TMenuItem>(query, values);
-      const newItem = rows[0];
 
-      triggerWebhook(newItem);
+      // Валидация данных
+      if (!name || !description || price <= 0 || !image) {
+        return {
+          success: false,
+          message:
+            "Invalid input data. All fields are required and price must be a positive number.",
+        };
+      }
 
-      simulateDelayedTask(newItem.id);
+      try {
+        const query = `
+          INSERT INTO menu_items (name, description, price, image)
+          VALUES ($1, $2, $3, $4)
+          RETURNING *;
+        `;
+        const values = [name, description, price, image];
+        const { rows } = await db.query<TMenuItem>(query, values);
+        const newItem = rows[0];
 
-      return newItem;
+        triggerWebhook(newItem);
+        simulateDelayedTask(newItem.id);
+
+        return {
+          success: true,
+          message: "Menu item successfully created!",
+          menuItem: newItem,
+        };
+      } catch (error) {
+        console.error("Error creating menu item:", error);
+        return { success: false, message: "Error creating menu item." };
+      }
+    },
+
+    updateMenuItem: async (
+      _: undefined,
+      { id, name, description, price, image }: Partial<TMenuItem>,
+      context: GraphQLContext
+    ): Promise<TMutationResponse> => {
+      const { db } = context;
+
+      // Валидация id и хотя бы одного поля
+      if (!id) {
+        return { success: false, message: "ID is required to update an item." };
+      }
+      if (!name && !description && !price && !image) {
+        return {
+          success: false,
+          message:
+            "At least one field (name, description, price, or image) must be provided for update.",
+        };
+      }
+      if (price !== undefined && price <= 0) {
+        return { success: false, message: "Price must be a positive number." };
+      }
+
+      try {
+        const fields = [];
+        const values = [];
+        let paramIndex = 1;
+
+        if (name) {
+          fields.push(`name = $${paramIndex++}`);
+          values.push(name);
+        }
+        if (description) {
+          fields.push(`description = $${paramIndex++}`);
+          values.push(description);
+        }
+        if (price) {
+          fields.push(`price = $${paramIndex++}`);
+          values.push(price);
+        }
+        if (image) {
+          fields.push(`image = $${paramIndex++}`);
+          values.push(image);
+        }
+
+        values.push(id);
+
+        const query = `
+          UPDATE menu_items
+          SET ${fields.join(", ")}
+          WHERE id = $${paramIndex}
+          RETURNING *;
+        `;
+
+        const { rows } = await db.query<TMenuItem>(query, values);
+
+        if (rows.length === 0) {
+          return {
+            success: false,
+            message: `Menu item with ID ${id} not found.`,
+          };
+        }
+
+        return {
+          success: true,
+          message: "Menu item successfully updated!",
+          menuItem: rows[0],
+        };
+      } catch (error) {
+        console.error("Error updating menu item:", error);
+        return { success: false, message: "Error updating menu item." };
+      }
+    },
+
+    deleteMenuItem: async (
+      _: undefined,
+      { id }: { id: number },
+      context: GraphQLContext
+    ): Promise<TMutationResponse> => {
+      const { db } = context;
+
+      // Валидация id
+      if (!id) {
+        return { success: false, message: "ID is required to delete an item." };
+      }
+
+      try {
+        const query = `
+          DELETE FROM menu_items
+          WHERE id = $1
+          RETURNING id;
+        `;
+        const { rows } = await db.query(query, [id]);
+
+        if (rows.length > 0) {
+          return { success: true, message: "Menu item successfully deleted!" };
+        } else {
+          return {
+            success: false,
+            message: `Menu item with ID ${id} not found.`,
+          };
+        }
+      } catch (error) {
+        console.error("Error deleting menu item:", error);
+        return { success: false, message: "Error deleting menu item." };
+      }
     },
   },
 };
