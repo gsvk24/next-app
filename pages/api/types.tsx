@@ -1,15 +1,11 @@
-import { Pool } from "pg";
+import { PrismaClient } from "@prisma/client";
 
 export type TMenuItem = {
   id: number;
   name: string;
   description: string;
   price: number;
-  image: string;
-};
-
-export type DbClient = {
-  query: <T>(sql: string, values?: unknown[]) => Promise<{ rows: T[] }>;
+  image: string | null;
 };
 
 export type TMutationResponse = {
@@ -19,5 +15,5 @@ export type TMutationResponse = {
 };
 
 export type GraphQLContext = {
-  db: Pool & DbClient;
+  prisma: PrismaClient;
 };

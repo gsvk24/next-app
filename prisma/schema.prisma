@@ -11,8 +11,7 @@ model TMenuItem {
   id          Int      @id @default(autoincrement())
   name        String
   description String
-  price       Decimal
+  price       Float
   image       String?
-
   @@map("menu_items")
 }

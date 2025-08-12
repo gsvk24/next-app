@@ -44,11 +44,13 @@ const ADD_MENU_ITEM = gql`
       price: $price
       image: $image
     ) {
-      id
-      name
-      description
-      price
-      image
+      menuItem {
+        id
+        name
+        description
+        price
+        image
+      }
     }
   }
 `;
@@ -62,7 +64,7 @@ function MenuPage() {
   );
 
   const [addItemMutation] = useMutation<
-    { addMenuItem: TMenuItem },
+    { addMenuItem: { menuItem: TMenuItem } },
     Omit<TMenuItem, "id">
   >(ADD_MENU_ITEM, {
     refetchQueries: [{ query: GET_MENU_ITEMS }],
