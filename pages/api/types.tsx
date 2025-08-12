@@ -9,7 +9,13 @@ export type TMenuItem = {
 };
 
 export type DbClient = {
-  query: <T>(sql: string, values?: any[]) => Promise<{ rows: T[] }>;
+  query: <T>(sql: string, values?: unknown[]) => Promise<{ rows: T[] }>;
+};
+
+export type TMutationResponse = {
+  success: boolean;
+  message?: string;
+  menuItem?: TMenuItem;
 };
 
 export type GraphQLContext = {
