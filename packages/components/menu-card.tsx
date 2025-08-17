@@ -17,7 +17,6 @@ const MenuCard: React.FC<TMenuCardProps> = ({ item }) => {
 
   return (
     <div className="w-full max-w-xs overflow-hidden transition-transform duration-300 bg-white border border-gray-200 shadow-md rounded-xl hover:scale-105 hover:shadow-xl">
-      {}
       {image && (
         <div className="h-48 overflow-hidden">
           <img
