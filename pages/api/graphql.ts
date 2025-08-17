@@ -2,24 +2,11 @@ import "dotenv/config";
 import { ApolloServer, gql } from "apollo-server-micro";
 import { MicroRequest } from "apollo-server-micro/dist/types";
 import { ServerResponse } from "http";
-import { Pool } from "pg";
+import { PrismaClient } from "@prisma/client";
 
 import { TMenuItem, GraphQLContext, TMutationResponse } from "./types";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-pool
-  .connect()
-  .then((client) => {
-    console.log("Successfully connected to PostgreSQL!");
-    client.release();
-  })
-  .catch((err) => {
-    console.error("Error connecting to PostgreSQL:", err.message);
-    console.error("DATABASE_URL:", process.env.DATABASE_URL);
-  });
+const prisma = new PrismaClient();
 
 const typeDefs = gql`
   type TMenuItem {
@@ -29,8 +16,14 @@ const typeDefs = gql`
     price: Float
     image: String
   }
+  type TMutationResponse {
+    success: Boolean!
+    message: String
+    menuItem: TMenuItem
+  }
   type Query {
     menuItems: [TMenuItem]
+    menuItem(id: Int!): TMenuItem
   }
   type Mutation {
     addMenuItem(
@@ -38,7 +31,15 @@ const typeDefs = gql`
       description: String!
       price: Float!
       image: String!
-    ): TMenuItem
+    ): TMutationResponse
+    updateMenuItem(
+      id: Int!
+      name: String
+      description: String
+      price: Float
+      image: String
+    ): TMutationResponse
+    deleteMenuItem(id: Int!): TMutationResponse
   }
 `;
 
@@ -109,21 +110,20 @@ const resolvers = {
       __: undefined,
       context: GraphQLContext
     ): Promise<TMenuItem[]> => {
-      const { rows } = await context.db.query<TMenuItem>(
-        "SELECT * FROM menu_items"
-      );
-      return rows;
+      const { prisma } = context;
+      return prisma.tMenuItem.findMany();
     },
     menuItem: async (
       _: undefined,
       { id }: { id: number },
       context: GraphQLContext
     ): Promise<TMenuItem | null> => {
-      const { rows } = await context.db.query<TMenuItem>(
-        "SELECT * FROM menu_items WHERE id = $1",
-        [id]
-      );
-      return rows[0] || null;
+      const { prisma } = context;
+      return prisma.tMenuItem.findUnique({
+        where: {
+          id,
+        },
+      });
     },
   },
   Mutation: {
@@ -132,9 +132,8 @@ const resolvers = {
       { name, description, price, image }: Omit<TMenuItem, "id">,
       context: GraphQLContext
     ): Promise<TMutationResponse> => {
-      const { db } = context;
+      const { prisma } = context;
 
-      // Валидация данных
       if (!name || !description || price <= 0 || !image) {
         return {
           success: false,
@@ -144,14 +143,14 @@ const resolvers = {
       }
 
       try {
-        const query = `
-          INSERT INTO menu_items (name, description, price, image)
-          VALUES ($1, $2, $3, $4)
-          RETURNING *;
-        `;
-        const values = [name, description, price, image];
-        const { rows } = await db.query<TMenuItem>(query, values);
-        const newItem = rows[0];
+        const newItem = await prisma.tMenuItem.create({
+          data: {
+            name,
+            description,
+            price,
+            image,
+          },
+        });
 
         triggerWebhook(newItem);
         simulateDelayedTask(newItem.id);
@@ -172,9 +171,8 @@ const resolvers = {
       { id, name, description, price, image }: Partial<TMenuItem>,
       context: GraphQLContext
     ): Promise<TMutationResponse> => {
-      const { db } = context;
+      const { prisma } = context;
 
-      // Валидация id и хотя бы одного поля
       if (!id) {
         return { success: false, message: "ID is required to update an item." };
       }
@@ -190,39 +188,12 @@ const resolvers = {
       }
 
       try {
-        const fields = [];
-        const values = [];
-        let paramIndex = 1;
+        const updatedItem = await prisma.tMenuItem.update({
+          where: { id },
+          data: { name, description, price, image },
+        });
 
-        if (name) {
-          fields.push(`name = $${paramIndex++}`);
-          values.push(name);
-        }
-        if (description) {
-          fields.push(`description = $${paramIndex++}`);
-          values.push(description);
-        }
-        if (price) {
-          fields.push(`price = $${paramIndex++}`);
-          values.push(price);
-        }
-        if (image) {
-          fields.push(`image = $${paramIndex++}`);
-          values.push(image);
-        }
-
-        values.push(id);
-
-        const query = `
-          UPDATE menu_items
-          SET ${fields.join(", ")}
-          WHERE id = $${paramIndex}
-          RETURNING *;
-        `;
-
-        const { rows } = await db.query<TMenuItem>(query, values);
-
-        if (rows.length === 0) {
+        if (!updatedItem) {
           return {
             success: false,
             message: `Menu item with ID ${id} not found.`,
@@ -232,7 +203,7 @@ const resolvers = {
         return {
           success: true,
           message: "Menu item successfully updated!",
-          menuItem: rows[0],
+          menuItem: updatedItem,
         };
       } catch (error) {
         console.error("Error updating menu item:", error);
@@ -245,22 +216,18 @@ const resolvers = {
       { id }: { id: number },
       context: GraphQLContext
     ): Promise<TMutationResponse> => {
-      const { db } = context;
+      const { prisma } = context;
 
-      // Валидация id
       if (!id) {
         return { success: false, message: "ID is required to delete an item." };
       }
 
       try {
-        const query = `
-          DELETE FROM menu_items
-          WHERE id = $1
-          RETURNING id;
-        `;
-        const { rows } = await db.query(query, [id]);
+        const deletedItem = await prisma.tMenuItem.delete({
+          where: { id },
+        });
 
-        if (rows.length > 0) {
+        if (deletedItem) {
           return { success: true, message: "Menu item successfully deleted!" };
         } else {
           return {
@@ -279,7 +246,7 @@ const resolvers = {
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
-  context: async (): Promise<GraphQLContext> => ({ db: pool }),
+  context: async (): Promise<GraphQLContext> => ({ prisma }),
 });
 
 const startServer = apolloServer.start();

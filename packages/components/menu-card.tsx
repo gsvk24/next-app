@@ -1,9 +1,11 @@
+import React from "react";
+
 type TMenuItem = {
   id: number;
   name: string;
   description: string;
   price: number;
-  image: string;
+  image: string | null;
 };
 
 type TMenuCardProps = {
@@ -15,13 +17,15 @@ const MenuCard: React.FC<TMenuCardProps> = ({ item }) => {
 
   return (
     <div className="w-full max-w-xs overflow-hidden transition-transform duration-300 bg-white border border-gray-200 shadow-md rounded-xl hover:scale-105 hover:shadow-xl">
-      <div className="h-48 overflow-hidden">
-        <img
-          src={image}
-          alt={name}
-          className="object-cover w-full h-full transition-transform duration-500 hover:scale-110"
-        />
-      </div>
+      {image && (
+        <div className="h-48 overflow-hidden">
+          <img
+            src={image}
+            alt={name}
+            className="object-cover w-full h-full transition-transform duration-500 hover:scale-110"
+          />
+        </div>
+      )}
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-xl font-bold text-gray-800 truncate">{name}</h3>
